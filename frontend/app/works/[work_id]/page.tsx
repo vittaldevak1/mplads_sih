@@ -84,24 +84,24 @@ export default function WorkDetailPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
       {/* Header */}
-      <div className="border-b border-[#E2E8F0] px-6 py-4 bg-white">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/works" className="text-[#64748B] hover:text-accent font-mono-tech text-xs transition">
+      <div className="border-b border-[#E2E8F0] px-3 sm:px-6 py-3 sm:py-4 bg-white">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Link href="/works" className="text-[#64748B] hover:text-accent font-mono-tech text-xs transition shrink-0">
               ← Back
             </Link>
-            <div>
-              <div className="text-[10px] font-mono-tech text-[#94A3B8] uppercase tracking-wider">
+            <div className="min-w-0">
+              <div className="text-[10px] font-mono-tech text-[#94A3B8] uppercase tracking-wider truncate">
                 {work.parliament_house === 'lok_sabha' ? 'Lok Sabha' : 'Rajya Sabha'} · {work.work_id}
               </div>
-              <h1 className="text-xl font-display text-[#0F172A] mt-1">
+              <h1 className="text-base sm:text-xl font-display text-[#0F172A] mt-1">
                 Forensic Audit Dossier
               </h1>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <span
-              className="px-3 py-1.5 rounded font-mono-tech text-xs font-bold uppercase tracking-wider border"
+              className="px-2 sm:px-3 py-1 sm:py-1.5 rounded font-mono-tech text-[10px] sm:text-xs font-bold uppercase tracking-wider border"
               style={{ background: badge.bg, color: badge.color, borderColor: badge.border }}
             >
               {badge.label} {risk?.composite_risk?.toFixed(1) ?? '—'}
@@ -112,13 +112,13 @@ export default function WorkDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-[#E2E8F0] px-6 bg-white">
-        <div className="max-w-7xl mx-auto flex gap-0">
+      <div className="border-b border-[#E2E8F0] px-3 sm:px-6 bg-white overflow-x-auto">
+        <div className="max-w-7xl mx-auto flex gap-0 min-w-max">
           {(['overview', 'signals', 'anomalies', 'timeline'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-5 py-3 font-mono-tech text-xs uppercase tracking-wider border-b-2 transition ${
+              className={`px-3 sm:px-5 py-2.5 sm:py-3 font-mono-tech text-[10px] sm:text-xs uppercase tracking-wider border-b-2 transition whitespace-nowrap ${
                 activeTab === tab
                   ? 'border-accent text-accent'
                   : 'border-transparent text-[#94A3B8] hover:text-[#475569]'
@@ -126,7 +126,7 @@ export default function WorkDetailPage() {
             >
               {tab}
               {tab === 'anomalies' && anomalyCount > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 rounded bg-red-100 text-red-600 text-[10px]">
+                <span className="ml-1.5 sm:ml-2 px-1 sm:px-1.5 py-0.5 rounded bg-red-100 text-red-600 text-[9px] sm:text-[10px]">
                   {anomalyCount}
                 </span>
               )}
@@ -135,7 +135,7 @@ export default function WorkDetailPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -305,7 +305,7 @@ export default function WorkDetailPage() {
                       {signal.evidence && typeof signal.evidence === 'object' && !Array.isArray(signal.evidence) && (
                         <div className="mt-3 p-3 rounded-lg bg-white border border-[#E2E8F0]">
                           <div className="text-[10px] font-mono-tech text-[#94A3B8] mb-2">Evidence</div>
-                          <pre className="text-xs text-[#64748B] font-mono-tech whitespace-pre-wrap">
+                          <pre className="text-xs text-[#64748B] font-mono-tech whitespace-pre-wrap overflow-x-auto">
                             {JSON.stringify(signal.evidence, null, 2)}
                           </pre>
                         </div>
@@ -350,7 +350,7 @@ export default function WorkDetailPage() {
                     </div>
                     {anomaly.evidence && (
                       <div className="mt-3 p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
-                        <pre className="text-xs text-[#64748B] font-mono-tech whitespace-pre-wrap">
+                        <pre className="text-xs text-[#64748B] font-mono-tech whitespace-pre-wrap overflow-x-auto">
                           {JSON.stringify(anomaly.evidence, null, 2)}
                         </pre>
                       </div>

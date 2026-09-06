@@ -9,12 +9,13 @@ from ..models.work import Work
 from ..models.work_recommendation import WorkRecommendation
 from ..models.work_sanction import WorkSanction
 from ..models.inspection_task import InspectionTask
+from ..auth.dependencies import get_current_user, get_scope_filter
+from ..auth.models import DemoUser
 
 router = APIRouter(prefix="/api", tags=["anomalies"])
 
 UNAVAILABLE_SIGNALS = {"C", "O", "S", "G"}
 
-# Signal-level thresholds for flagging elevated signals
 SIGNAL_THRESHOLDS = {
     "F": {"score": 65, "label": "Financial Disbursement Alert", "severity": "HIGH",
            "desc": "Elevated disbursement-to-sanction ratio detected; requires verification."},
@@ -41,17 +42,10 @@ async def get_anomalies(
     size: int = Query(20, ge=1, le=100),
     severity: Optional[str] = None,
     anomaly_type: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
-    """
-    Paginated risk-flagged items driven by live risk_signals and risk_scores.
-
-    Categories:
-    - HIGH_RISK: Works with composite risk >= 65 requiring inspection
-    - Signal codes (F, D, X, V, Q, B, Rs): Individual elevated signal alerts
-    - C, O, S, G: Return unavailable message
-    """
-    # Handle unavailable signals
+    """Paginated risk-flagged items, scoped to jurisdiction."""
     if anomaly_type in UNAVAILABLE_SIGNALS:
         return {
             "items": [],
@@ -63,7 +57,8 @@ async def get_anomalies(
             "message": f"Signal '{anomaly_type}' source data is unavailable in this MVP.",
         }
 
-    # Specific available signal filter
+    scope = get_scope_filter(user, Work)
+
     if anomaly_type and anomaly_type != "HIGH_RISK" and anomaly_type in SIGNAL_THRESHOLDS:
         threshold = SIGNAL_THRESHOLDS[anomaly_type]
         min_score = threshold["score"]
@@ -93,6 +88,9 @@ async def get_anomalies(
             RiskSignal.available == True,
             RiskSignal.score >= min_score,
         )
+
+        if scope:
+            query = query.filter(*scope)
 
         if severity:
             if severity == "HIGH":
@@ -126,7 +124,6 @@ async def get_anomalies(
             })
 
     else:
-        # High Risk: works with composite >= 65
         query = db.query(
             RiskScore.id,
             RiskScore.work_id,
@@ -145,6 +142,9 @@ async def get_anomalies(
             RiskScore.composite_risk >= 65.0,
         )
 
+        if scope:
+            query = query.filter(*scope)
+
         if severity:
             query = query.filter(RiskScore.inspection_priority == severity)
 
@@ -152,13 +152,11 @@ async def get_anomalies(
         total = query.count()
         results = query.offset((page - 1) * size).limit(size).all()
 
-        # Get top triggered signals for each work
         items = []
         for r in results:
             comp_risk = float(r.composite_risk) if r.composite_risk is not None else 0.0
             sev = r.inspection_priority or "HIGH"
 
-            # Get top signals for this work
             top_signals = db.query(
                 RiskSignal.signal_code,
                 RiskSignal.score,

@@ -9,19 +9,30 @@ from ..models.work_completion import WorkCompletion
 from ..models.expenditure import Expenditure
 from ..models.anomaly import Anomaly
 from ..schemas.ai_contract import WorkDetailResponse
+from ..auth.dependencies import get_current_user, get_scope_filter
+from ..auth.models import DemoUser
 
 router = APIRouter(prefix="/api", tags=["work-detail"])
+
 
 @router.get("/works/{work_id:path}", response_model=WorkDetailResponse)
 async def get_work_detail(
     work_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
-    """Full work detail including anomalies, MP, and expenditures."""
+    """Full work detail including anomalies, MP, and expenditures. Scoped to jurisdiction."""
     work = db.query(Work).filter_by(work_id=work_id).first()
 
     if not work:
         raise HTTPException(status_code=404, detail="Work not found")
+
+    # Jurisdiction check — verify work belongs to user's scope
+    scope = get_scope_filter(user, Work)
+    if scope:
+        allowed = db.query(Work).filter_by(work_id=work_id).filter(*scope).first()
+        if not allowed:
+            raise HTTPException(status_code=404, detail="Work not found in your jurisdiction")
 
     recommendation = db.query(WorkRecommendation).filter_by(work_id=work_id).first()
     sanction = db.query(WorkSanction).filter_by(work_id=work_id).first()

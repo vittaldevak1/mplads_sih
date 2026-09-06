@@ -12,6 +12,8 @@ from ..models.risk_score import RiskScore
 from ..models.risk_signal import RiskSignal
 from ..models.inspection_task import InspectionTask
 from ..models.activity_log import ActivityLog
+from ..auth.dependencies import get_current_user, get_scope_filter
+from ..auth.models import DemoUser
 
 router = APIRouter(prefix="/api", tags=["inspection"])
 
@@ -41,11 +43,18 @@ async def get_inspection_queue(
     limit: int = Query(50, ge=1, le=200),
     sort_by: Optional[str] = Query(None, pattern="^(work_id|state|constituency|risk|priority)$"),
     sort_dir: Optional[str] = Query("desc", pattern="^(asc|desc)$"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
+    """Inspection queue, scoped to jurisdiction."""
+    scope = get_scope_filter(user, Work)
+
     query = db.query(Work).join(
         RiskScore, Work.work_id == RiskScore.work_id
     )
+
+    if scope:
+        query = query.filter(*scope)
 
     if priority:
         query = query.filter(RiskScore.inspection_priority == priority)
@@ -68,7 +77,6 @@ async def get_inspection_queue(
             RiskSignal.available == True
         ).scalar() or 0
 
-        # Get top triggered signals
         top_signals = db.query(
             RiskSignal.signal_code,
             RiskSignal.score,
@@ -99,10 +107,16 @@ async def get_inspection_queue(
             "notes": task.notes if task else None,
         })
 
+    # Counts — scoped
     counts_query = db.query(
         RiskScore.inspection_priority,
         func.count(RiskScore.id)
-    ).group_by(RiskScore.inspection_priority).all()
+    ).join(Work, RiskScore.work_id == Work.work_id)
+
+    if scope:
+        counts_query = counts_query.filter(*scope)
+
+    counts_query = counts_query.group_by(RiskScore.inspection_priority).all()
 
     counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "unanalyzed": 0}
     for priority_level, count in counts_query:
@@ -110,7 +124,11 @@ async def get_inspection_queue(
         if key in counts:
             counts[key] = count
 
-    total_works = db.query(func.count(Work.id)).scalar() or 0
+    # Total works in scope
+    tw_query = db.query(func.count(Work.id))
+    if scope:
+        tw_query = tw_query.filter(*scope)
+    total_works = tw_query.scalar() or 0
     analyzed = sum(counts.values())
     counts["unanalyzed"] = max(0, total_works - analyzed)
 
@@ -121,8 +139,19 @@ async def get_inspection_queue(
 async def assign_inspection(
     work_id: str,
     body: InspectorRequest = InspectorRequest(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
+    # Jurisdiction check
+    work = db.query(Work).filter_by(work_id=work_id).first()
+    if not work:
+        raise HTTPException(status_code=404, detail="Work not found")
+    scope = get_scope_filter(user, Work)
+    if scope:
+        allowed = db.query(Work).filter_by(work_id=work_id).filter(*scope).first()
+        if not allowed:
+            raise HTTPException(status_code=404, detail="Work not found in your jurisdiction")
+
     task = db.query(InspectionTask).filter_by(work_id=work_id).first()
     if not task:
         task = InspectionTask(work_id=work_id)
@@ -145,7 +174,7 @@ async def assign_inspection(
 
 
 @router.post("/inspection/{work_id:path}/review")
-async def review_inspection(work_id: str, db: Session = Depends(get_db)):
+async def review_inspection(work_id: str, db: Session = Depends(get_db), user: DemoUser = Depends(get_current_user)):
     task = db.query(InspectionTask).filter_by(work_id=work_id).first()
     if not task:
         task = InspectionTask(work_id=work_id)
@@ -165,7 +194,7 @@ async def review_inspection(work_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/inspection/{work_id:path}/request_docs")
-async def request_documents(work_id: str, db: Session = Depends(get_db)):
+async def request_documents(work_id: str, db: Session = Depends(get_db), user: DemoUser = Depends(get_current_user)):
     task = db.query(InspectionTask).filter_by(work_id=work_id).first()
     if not task:
         task = InspectionTask(work_id=work_id)
@@ -185,7 +214,7 @@ async def request_documents(work_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/inspection/{work_id:path}/field_inspect")
-async def field_inspection(work_id: str, db: Session = Depends(get_db)):
+async def field_inspection(work_id: str, db: Session = Depends(get_db), user: DemoUser = Depends(get_current_user)):
     task = db.query(InspectionTask).filter_by(work_id=work_id).first()
     if not task:
         task = InspectionTask(work_id=work_id)
@@ -208,7 +237,8 @@ async def field_inspection(work_id: str, db: Session = Depends(get_db)):
 async def dismiss_inspection(
     work_id: str,
     body: NotesRequest = NotesRequest(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
     task = db.query(InspectionTask).filter_by(work_id=work_id).first()
     if not task:
@@ -233,7 +263,8 @@ async def dismiss_inspection(
 async def complete_inspection(
     work_id: str,
     body: NotesRequest = NotesRequest(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
     task = db.query(InspectionTask).filter_by(work_id=work_id).first()
     if not task:
@@ -257,7 +288,8 @@ async def complete_inspection(
 async def update_notes(
     work_id: str,
     body: NotesRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
     task = db.query(InspectionTask).filter_by(work_id=work_id).first()
     if not task:
@@ -278,7 +310,7 @@ async def update_notes(
 
 
 @router.get("/inspection/{work_id:path}/history")
-async def get_inspection_history(work_id: str, db: Session = Depends(get_db)):
+async def get_inspection_history(work_id: str, db: Session = Depends(get_db), user: DemoUser = Depends(get_current_user)):
     logs = db.query(ActivityLog).filter_by(
         work_id=work_id
     ).order_by(ActivityLog.created_at.desc()).limit(50).all()

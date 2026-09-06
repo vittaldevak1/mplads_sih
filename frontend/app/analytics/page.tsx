@@ -125,44 +125,44 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] p-6">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-display text-[#0F172A]">Analytics</h1>
-          <p className="text-sm text-[#94A3B8] mt-1 font-mono-tech">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-lg sm:text-2xl font-display text-[#0F172A]">Analytics</h1>
+          <p className="text-xs sm:text-sm text-[#94A3B8] mt-1 font-mono-tech">
             Statistical analysis and risk distributions across MPLADS works
           </p>
         </div>
 
         {/* Benford's Law */}
-        <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
+        <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 sm:p-5 mb-4 sm:mb-6">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="min-w-0">
               <div className="text-[10px] font-mono-tech text-accent uppercase tracking-wider font-semibold">
                 Benford&apos;s Law — First-Digit Distribution
               </div>
-              <div className="text-xs text-[#94A3B8] mt-1">
+              <div className="text-[10px] sm:text-xs text-[#94A3B8] mt-1">
                 Comparing empirical sanction amount distribution against theoretical Benford curve
                 {benford && <span className="ml-2 font-mono-tech">({benford.sample_size.toLocaleString()} amounts)</span>}
               </div>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={280}>
             <ComposedChart data={benfordChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis dataKey="digit" tick={{ fontSize: 11, fill: '#64748B' }} />
               <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} unit="%" />
               <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Legend wrapperStyle={{ fontSize: 10 }} />
               <Bar dataKey="empirical" name="Empirical" fill={BENFORD_EMPIRICAL} radius={[4, 4, 0, 0]} opacity={0.8} />
               <Line type="monotone" dataKey="theoretical" name="Theoretical Benford" stroke={BENFORD_THEORETICAL} strokeWidth={2} dot={{ fill: BENFORD_THEORETICAL, r: 4 }} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           {/* State Risk Distribution */}
-          <div className="rounded-xl border border-[#E2E8F0] bg-white p-5">
+          <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 sm:p-5">
             <div className="text-[10px] font-mono-tech text-accent uppercase tracking-wider font-semibold mb-3">
               Risk by State (Top 20)
             </div>
@@ -170,9 +170,9 @@ export default function AnalyticsPage() {
               <BarChart data={stateRiskData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis type="number" tick={{ fontSize: 10, fill: '#94A3B8' }} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: '#64748B', fontFamily: 'JetBrains Mono' }} width={120} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 8, fill: '#64748B', fontFamily: 'JetBrains Mono' }} width={90} />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Legend wrapperStyle={{ fontSize: 9 }} />
                 <Bar dataKey="CRITICAL" stackId="a" fill={RISK_COLORS[0]} />
                 <Bar dataKey="HIGH" stackId="a" fill={RISK_COLORS[1]} />
                 <Bar dataKey="MEDIUM" stackId="a" fill={RISK_COLORS[2]} />
@@ -182,21 +182,21 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Budget Flow */}
-          <div className="rounded-xl border border-[#E2E8F0] bg-white p-5">
+          <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 sm:p-5">
             <div className="text-[10px] font-mono-tech text-accent uppercase tracking-wider font-semibold mb-3">
               Budget Flow (Crores)
             </div>
             {sankey && (
               <>
-                <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
                   {[
                     { label: 'Sanctioned', value: sankey.amount_flow.sanctioned, color: '#1E3A8A' },
                     { label: 'Disbursed', value: sankey.amount_flow.disbursed, color: '#16A34A' },
                     { label: 'Unspent', value: sankey.amount_flow.unspent, color: '#D97706' },
                   ].map(({ label, value, color }) => (
-                    <div key={label} className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-center">
-                      <div className="text-[10px] font-mono-tech text-[#94A3B8] uppercase">{label}</div>
-                      <div className="text-lg font-bold font-mono-tech mt-1" style={{ color }}>
+                    <div key={label} className="p-2 sm:p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-center">
+                      <div className="text-[9px] sm:text-[10px] font-mono-tech text-[#94A3B8] uppercase">{label}</div>
+                      <div className="text-sm sm:text-lg font-bold font-mono-tech mt-1" style={{ color }}>
                         {(value / 1e7).toFixed(1)} Cr
                       </div>
                     </div>
@@ -205,7 +205,7 @@ export default function AnalyticsPage() {
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={budgetFlowData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                    <XAxis dataKey="stage" tick={{ fontSize: 11, fill: '#64748B' }} />
+                    <XAxis dataKey="stage" tick={{ fontSize: 10, fill: '#64748B' }} />
                     <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="amount" name="Amount (Cr)" radius={[4, 4, 0, 0]}>
@@ -218,18 +218,18 @@ export default function AnalyticsPage() {
               </>
             )}
             {sankey && (
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
+              <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
                   <div className="text-[10px] font-mono-tech text-[#94A3B8]">Works Flow</div>
-                  <div className="flex items-center gap-2 mt-1 text-xs font-mono-tech text-[#475569]">
-                    <span>{sankey.works_flow.recommended} recommended</span>
+                  <div className="flex items-center gap-1 sm:gap-2 mt-1 text-[10px] sm:text-xs font-mono-tech text-[#475569] flex-wrap">
+                    <span>{sankey.works_flow.recommended} rec.</span>
                     <span>→</span>
-                    <span>{sankey.works_flow.sanctioned} sanctioned</span>
+                    <span>{sankey.works_flow.sanctioned} san.</span>
                     <span>→</span>
-                    <span>{sankey.works_flow.completed} completed</span>
+                    <span>{sankey.works_flow.completed} comp.</span>
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
+                <div className="p-2 sm:p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
                   <div className="text-[10px] font-mono-tech text-[#94A3B8]">Utilization</div>
                   <div className="text-sm font-bold text-[#334155] mt-1">
                     {sankey.amount_flow.sanctioned > 0
@@ -243,7 +243,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Category Risk Distribution */}
-        <div className="rounded-xl border border-[#E2E8F0] bg-white p-5">
+        <div className="rounded-xl border border-[#E2E8F0] bg-white p-3 sm:p-5">
           <div className="text-[10px] font-mono-tech text-accent uppercase tracking-wider font-semibold mb-3">
             Risk by Work Category (Top 15)
           </div>
@@ -251,9 +251,9 @@ export default function AnalyticsPage() {
             <BarChart data={categoryRiskData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis type="number" tick={{ fontSize: 10, fill: '#94A3B8' }} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: '#64748B', fontFamily: 'JetBrains Mono' }} width={200} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 8, fill: '#64748B', fontFamily: 'JetBrains Mono' }} width={100} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 10 }} />
+              <Legend wrapperStyle={{ fontSize: 9 }} />
               <Bar dataKey="CRITICAL" stackId="a" fill={RISK_COLORS[0]} />
               <Bar dataKey="HIGH" stackId="a" fill={RISK_COLORS[1]} />
               <Bar dataKey="MEDIUM" stackId="a" fill={RISK_COLORS[2]} />

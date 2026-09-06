@@ -7,6 +7,8 @@ from ..models.work import Work
 from ..models.expenditure import Expenditure
 from ..models.vendor import Vendor
 from ..models.risk_score import RiskScore
+from ..auth.dependencies import get_current_user, get_scope_filter
+from ..auth.models import DemoUser
 
 router = APIRouter(prefix="/api", tags=["vendors"])
 
@@ -16,28 +18,66 @@ async def get_vendors(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     sort_by: str = Query("total_works", pattern="^(total_works|total_expenditure|avg_risk|high_risk_count|distinct_works)$"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
-    """Vendor analytics with risk data using DISTINCT work counts."""
-    vendors = db.query(Vendor).all()
+    """Vendor analytics with risk data, scoped to jurisdiction."""
+    scope = get_scope_filter(user, Work)
+
+    # Build raw SQL with scope
+    if user.role == "ministry_admin" or not scope:
+        sql = """
+            SELECT e.vendor_name,
+                   AVG(r.composite_risk) as avg_risk,
+                   COUNT(DISTINCT CASE WHEN r.composite_risk > 65 THEN e.work_id END) as high_risk_count,
+                   COUNT(DISTINCT e.work_id) as distinct_works
+            FROM expenditures e
+            JOIN risk_scores r ON e.work_id = r.work_id
+            WHERE e.vendor_name IS NOT NULL
+            GROUP BY e.vendor_name
+        """
+        params = {}
+        scoped_vendor_names = None
+    else:
+        sql = """
+            SELECT e.vendor_name,
+                   AVG(r.composite_risk) as avg_risk,
+                   COUNT(DISTINCT CASE WHEN r.composite_risk > 65 THEN e.work_id END) as high_risk_count,
+                   COUNT(DISTINCT e.work_id) as distinct_works
+            FROM expenditures e
+            JOIN risk_scores r ON e.work_id = r.work_id
+            JOIN works w ON e.work_id = w.work_id
+            WHERE e.vendor_name IS NOT NULL
+        """
+        params = {}
+
+        if user.role in ("state_nodal", "inspection_officer") and user.state:
+            sql += " AND w.state = :scope_state"
+            params["scope_state"] = user.state
+        elif user.role == "district_authority" and user.district:
+            sql += " AND w.ida ILIKE :scope_ida"
+            params["scope_ida"] = f"{user.district}%"
+        elif user.role == "mp_user" and user.constituency:
+            sql += " AND w.constituency = :scope_constituency"
+            params["scope_constituency"] = user.constituency
+
+        sql += " GROUP BY e.vendor_name"
 
     risk_stats = {}
-    rows = db.execute(text("""
-        SELECT e.vendor_name,
-               AVG(r.composite_risk) as avg_risk,
-               COUNT(DISTINCT CASE WHEN r.composite_risk > 65 THEN e.work_id END) as high_risk_count,
-               COUNT(DISTINCT e.work_id) as distinct_works
-        FROM expenditures e
-        JOIN risk_scores r ON e.work_id = r.work_id
-        WHERE e.vendor_name IS NOT NULL
-        GROUP BY e.vendor_name
-    """)).fetchall()
+    rows = db.execute(text(sql), params).fetchall()
     for row in rows:
         risk_stats[row[0]] = {
             "avg_risk": round(float(row[1]), 1) if row[1] else None,
             "high_risk_count": row[2],
             "distinct_works": row[3],
         }
+
+    # Filter vendors
+    if risk_stats:
+        scoped_vendor_names = set(risk_stats.keys())
+        vendors = db.query(Vendor).filter(Vendor.vendor_name.in_(scoped_vendor_names)).all()
+    else:
+        vendors = db.query(Vendor).all()
 
     results = []
     for v in vendors:
@@ -76,14 +116,17 @@ async def get_vendors(
 @router.get("/vendors/{vendor_name}")
 async def get_vendor_detail(
     vendor_name: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
-    """Detailed vendor info with recent works."""
+    """Detailed vendor info with recent works, scoped."""
     vendor = db.query(Vendor).filter_by(vendor_name=vendor_name).first()
     if not vendor:
         return None
 
-    works_with_risk = db.query(
+    scope = get_scope_filter(user, Work)
+
+    works_query = db.query(
         Work.work_id, Work.work_description, Work.state, Work.constituency,
         RiskScore.composite_risk, RiskScore.inspection_priority
     ).join(
@@ -92,15 +135,27 @@ async def get_vendor_detail(
         RiskScore, RiskScore.work_id == Work.work_id
     ).filter(
         Expenditure.vendor_name == vendor_name
-    ).distinct().order_by(desc(RiskScore.composite_risk)).limit(20).all()
+    )
 
-    risk_dist = db.query(
+    if scope:
+        works_query = works_query.filter(*scope)
+
+    works_with_risk = works_query.distinct().order_by(desc(RiskScore.composite_risk)).limit(20).all()
+
+    risk_dist_query = db.query(
         RiskScore.inspection_priority, func.count(func.distinct(RiskScore.work_id))
     ).join(
         Expenditure, Expenditure.work_id == RiskScore.work_id
+    ).join(
+        Work, Work.work_id == RiskScore.work_id
     ).filter(
         Expenditure.vendor_name == vendor_name
-    ).group_by(RiskScore.inspection_priority).all()
+    )
+
+    if scope:
+        risk_dist_query = risk_dist_query.filter(*scope)
+
+    risk_dist = risk_dist_query.group_by(RiskScore.inspection_priority).all()
 
     return {
         "vendor_name": vendor.vendor_name,

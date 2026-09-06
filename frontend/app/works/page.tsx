@@ -5,8 +5,10 @@ import { fetchWorks } from '@/lib/api';
 import { Work, PaginatedResponse } from '@/types';
 import WorkForensicDrawer from '@/components/WorkForensicDrawer';
 import { SortIndicator } from '@/components/SortableTable';
+import { useAuth, ROLE_LABELS } from '@/lib/auth';
 
 export default function WorksPage() {
+  const { user } = useAuth();
   const [rawData, setRawData] = useState<Work[]>([]);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
@@ -82,54 +84,71 @@ export default function WorksPage() {
   }, []);
 
   return (
-    <div className="max-w-[1720px] mx-auto px-5 lg:px-8 py-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-[1720px] mx-auto px-3 sm:px-5 lg:px-8 py-4 sm:py-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
-          <h1 className="text-lg font-serif-luxury font-bold text-[#0F172A]">Works Registry</h1>
-          <div className="text-xs font-mono-tech text-[#64748B] mt-0.5">
-            {total.toLocaleString()} total works — click a row to inspect
+          <h1 className="text-base sm:text-lg font-serif-luxury font-bold text-[#0F172A]">Works Registry</h1>
+          <div className="text-[10px] sm:text-xs font-mono-tech text-[#64748B] mt-0.5">
+            {total.toLocaleString()} total works — {window.innerWidth < 1024 ? 'tap a card' : 'click a row'} to inspect
           </div>
         </div>
       </div>
 
-      <div className="gov-panel rounded-xl p-4 mb-6">
-        <form onSubmit={handleSearch} className="flex flex-wrap gap-3">
+      {/* Role Scope Banner */}
+      {user && user.role !== 'ministry_admin' && (
+        <div className="gov-panel px-3 sm:px-4 py-2 sm:py-2.5 mb-3 sm:mb-4 flex items-center gap-2">
+          <svg className="w-3.5 h-3.5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-[10px] font-mono-tech text-[#64748B]">
+            Filtered for <span className="font-bold text-accent">{ROLE_LABELS[user.role]}</span>
+            {user.state && <span> — {user.constituency ? `${user.constituency}, ${user.state}` : user.district ? `${user.district}, ${user.state}` : user.state}</span>}
+          </span>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="gov-panel rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <input
             type="text"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search work ID, description, constituency..."
-            className="flex-1 min-w-[250px] bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg px-3 py-2 text-xs text-[#334155] placeholder-[#94A3B8] focus:outline-none focus:border-accent/50 font-sans transition"
+            className="flex-1 min-w-0 bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg px-3 py-2 text-xs text-[#334155] placeholder-[#94A3B8] focus:outline-none focus:border-accent/50 font-sans transition"
           />
-          <select
-            value={parliamentFilter}
-            onChange={(e) => { setParliamentFilter(e.target.value); setPage(1); }}
-            className="bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg px-3 py-2 text-xs text-[#334155] font-sans focus:outline-none focus:border-accent/50"
-          >
-            <option value="">All Parliament</option>
-            <option value="lok_sabha">Lok Sabha</option>
-            <option value="rajya_sabha">Rajya Sabha</option>
-          </select>
-          <select
-            value={riskFilter}
-            onChange={(e) => { setRiskFilter(e.target.value); setPage(1); }}
-            className="bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg px-3 py-2 text-xs text-[#334155] font-sans focus:outline-none focus:border-accent/50"
-          >
-            <option value="">All Risk Levels</option>
-            <option value="HIGH">High Risk</option>
-            <option value="MEDIUM">Medium Risk</option>
-            <option value="LOW">Low Risk</option>
-          </select>
+          <div className="flex gap-2">
+            <select
+              value={parliamentFilter}
+              onChange={(e) => { setParliamentFilter(e.target.value); setPage(1); }}
+              className="flex-1 sm:flex-none bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg px-3 py-2 text-xs text-[#334155] font-sans focus:outline-none focus:border-accent/50"
+            >
+              <option value="">All Parliament</option>
+              <option value="lok_sabha">Lok Sabha</option>
+              <option value="rajya_sabha">Rajya Sabha</option>
+            </select>
+            <select
+              value={riskFilter}
+              onChange={(e) => { setRiskFilter(e.target.value); setPage(1); }}
+              className="flex-1 sm:flex-none bg-[#F1F5F9] border border-[#E2E8F0] rounded-lg px-3 py-2 text-xs text-[#334155] font-sans focus:outline-none focus:border-accent/50"
+            >
+              <option value="">All Risk Levels</option>
+              <option value="HIGH">High Risk</option>
+              <option value="MEDIUM">Medium Risk</option>
+              <option value="LOW">Low Risk</option>
+            </select>
+          </div>
           <button
             type="submit"
-            className="px-4 py-2 rounded-lg bg-accent text-white font-bold text-xs transition"
+            className="px-4 py-2 rounded-lg bg-accent text-white font-bold text-xs transition sm:w-auto"
           >
             Search
           </button>
         </form>
       </div>
 
-      <div className="gov-panel rounded-xl overflow-hidden">
+      {/* Desktop Table View (lg and above) */}
+      <div className="hidden lg:block gov-panel rounded-xl overflow-hidden">
         <div className="overflow-x-auto scrollbar-luxury">
           <table className="w-full text-left border-collapse">
             <thead className="bg-[#F1F5F9] text-[10.5px] font-mono-tech text-[#64748B] border-b border-[#E2E8F0] select-none whitespace-nowrap">
@@ -234,6 +253,102 @@ export default function WorksPage() {
               </button>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Mobile Card View (below lg) */}
+      <div className="lg:hidden space-y-3">
+        {loading ? (
+          <div className="gov-panel rounded-xl p-8 text-center text-[#64748B] font-mono-tech text-xs animate-pulse">
+            Loading works...
+          </div>
+        ) : rawData.length === 0 ? (
+          <div className="gov-panel rounded-xl p-8 text-center text-[#64748B] font-mono-tech text-xs">
+            No works found
+          </div>
+        ) : (
+          <>
+            {rawData.map((work: any, idx: number) => (
+              <button
+                key={work.work_id}
+                onClick={() => handleRowClick(work.work_id)}
+                className="w-full text-left gov-panel rounded-xl p-3 sm:p-4 hover:bg-[#F0F7FF] transition border border-transparent hover:border-accent/20"
+              >
+                {/* Top row: Work ID + Risk + Priority */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono-tech text-accent/80 truncate mr-2">
+                    {work.work_id}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {work.composite_risk !== null && work.composite_risk !== undefined && (
+                      <span className={`text-sm font-mono-tech font-bold ${getRiskColor(work.composite_risk)}`}>
+                        {work.composite_risk.toFixed(1)}
+                      </span>
+                    )}
+                    <span className={`text-[9px] font-mono-tech px-1.5 py-0.5 rounded border ${getPriorityBadge(work.inspection_priority)}`}>
+                      {work.inspection_priority || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="text-xs text-[#334155] line-clamp-2 mb-2">
+                  {work.work_description || '-'}
+                </div>
+
+                {/* Info row */}
+                <div className="flex items-center gap-1.5 text-[10px] text-[#94A3B8] font-mono-tech flex-wrap">
+                  <span>{work.state || '-'}</span>
+                  <span>·</span>
+                  <span>{work.constituency || '-'}</span>
+                  {work.sanction_amount && (
+                    <>
+                      <span>·</span>
+                      <span className="text-[#475569]">₹{work.sanction_amount.toLocaleString('en-IN')}</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Status */}
+                {work.work_status && (
+                  <div className="mt-2">
+                    <span className={`text-[9px] font-mono-tech px-1.5 py-0.5 rounded border ${
+                      work.work_status === 'Work Completed'
+                        ? 'bg-emerald-50/60 border-emerald-400 text-emerald-600'
+                        : 'bg-[#F1F5F9] border-[#E2E8F0] text-[#64748B]'
+                    }`}>
+                      {work.work_status}
+                    </span>
+                  </div>
+                )}
+              </button>
+            ))}
+
+            {/* Mobile Pagination */}
+            {pages > 1 && (
+              <div className="gov-panel rounded-xl p-3 flex items-center justify-between">
+                <div className="text-[10px] font-mono-tech text-[#64748B]">
+                  {page}/{pages}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1.5 rounded bg-[#F1F5F9] border border-[#E2E8F0] text-xs text-[#475569] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    onClick={() => setPage(p => Math.min(pages, p + 1))}
+                    disabled={page === pages}
+                    className="px-3 py-1.5 rounded bg-[#F1F5F9] border border-[#E2E8F0] text-xs text-[#475569] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

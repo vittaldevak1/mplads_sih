@@ -1,26 +1,38 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.risk_score import RiskScore
 from ..models.risk_signal import RiskSignal
+from ..models.work import Work
 from ..ai.interfaces.contract import SIGNAL_DEFINITIONS
 from ..schemas.ai_contract import RiskScoreResponse, RiskSignalResponse
+from ..auth.dependencies import get_current_user, get_scope_filter
+from ..auth.models import DemoUser
 
 router = APIRouter(prefix="/api", tags=["risk"])
+
 
 @router.get("/risk/{work_id:path}", response_model=RiskScoreResponse)
 async def get_risk_score(
     work_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
     """
-    Risk score + 11 signals for a work.
-    Preserves available=false, score=null exactly.
+    Risk score + 11 signals for a work. Scoped to jurisdiction.
     """
+    # Jurisdiction check — verify work belongs to user's scope
+    work = db.query(Work).filter_by(work_id=work_id).first()
+    if work:
+        scope = get_scope_filter(user, Work)
+        if scope:
+            allowed = db.query(Work).filter_by(work_id=work_id).filter(*scope).first()
+            if not allowed:
+                raise HTTPException(status_code=404, detail="Work not found in your jurisdiction")
+
     risk = db.query(RiskScore).filter_by(work_id=work_id).first()
-    
+
     if not risk:
-        # Return empty structure with all 11 signals unavailable
         return RiskScoreResponse(
             work_id=work_id,
             composite_risk=None,
@@ -42,20 +54,15 @@ async def get_risk_score(
             created_at=None,
             updated_at=None,
         )
-    
-    # Get signals from database
+
     signals = db.query(RiskSignal).filter_by(work_id=work_id).all()
-    
-    # Build signal map by code
     signal_map = {s.signal_code: s for s in signals}
-    
-    # Ensure all 11 signals present in response
+
     signals_list = []
     for defn in SIGNAL_DEFINITIONS:
         signal = signal_map.get(defn["code"])
-        
+
         if signal:
-            # Signal exists in database - use stored values
             signals_list.append(RiskSignalResponse(
                 signal_code=signal.signal_code,
                 signal_name=signal.signal_name,
@@ -67,7 +74,6 @@ async def get_risk_score(
                 explanation=signal.explanation,
             ))
         else:
-            # Signal not computed - preserve unavailable state
             signals_list.append(RiskSignalResponse(
                 signal_code=defn["code"],
                 signal_name=defn["name"],
@@ -78,7 +84,7 @@ async def get_risk_score(
                 evidence=None,
                 explanation=None,
             ))
-    
+
     return RiskScoreResponse(
         work_id=risk.work_id,
         composite_risk=float(risk.composite_risk) if risk.composite_risk is not None else None,

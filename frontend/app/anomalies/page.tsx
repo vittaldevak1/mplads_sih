@@ -65,19 +65,19 @@ export default function AnomaliesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#334155] p-6">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#334155] p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-display text-[#0F172A]">Risk Analysis & Flagged Items</h1>
-          <p className="text-sm text-[#94A3B8] mt-1 font-mono-tech">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-lg sm:text-2xl font-display text-[#0F172A]">Risk Analysis & Flagged Items</h1>
+          <p className="text-xs sm:text-sm text-[#94A3B8] mt-1 font-mono-tech">
             {signalUnavailable
               ? 'Signal data unavailable'
               : `${total.toLocaleString('en-IN')} items flagged from live risk signals`}
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3 mb-6 items-center">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2 sm:gap-3 mb-4 sm:mb-6 items-center">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <span className="text-[10px] font-mono-tech text-[#94A3B8] uppercase">Severity:</span>
             {['HIGH', 'MEDIUM', 'INFO'].map((s) => {
               const style = SEVERITY_STYLES[s] || SEVERITY_STYLES.INFO;
@@ -85,7 +85,7 @@ export default function AnomaliesPage() {
                 <button
                   key={s}
                   onClick={() => { setSeverityFilter(severityFilter === s ? null : s); setPage(1); }}
-                  className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase font-mono-tech transition ${
+                  className={`px-2 sm:px-2.5 py-1 rounded text-[9px] sm:text-[10px] font-bold uppercase font-mono-tech transition ${
                     severityFilter === s ? 'ring-1 ring-accent' : ''
                   }`}
                   style={{ background: style.bg, color: style.text, border: `1px solid ${style.border}` }}
@@ -121,23 +121,23 @@ export default function AnomaliesPage() {
         </div>
 
         {signalUnavailable && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900 font-mono-tech text-sm mb-6">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-6 text-amber-900 font-mono-tech text-xs sm:text-sm mb-4 sm:mb-6">
             <div className="font-bold mb-1">Signal Source Unavailable</div>
             <div>{unavailableMessage}</div>
-            <div className="text-xs text-amber-700 mt-2">
+            <div className="text-[10px] sm:text-xs text-amber-700 mt-2">
               Citizen (C), OCR (O), Spatial (S), and Satellite (G) signals require external data sources not active in this stage.
             </div>
           </div>
         )}
 
         {!signalUnavailable && (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {loading ? (
-              <div className="rounded-xl border border-[#E2E8F0] bg-white p-12 text-center text-[#94A3B8] font-mono-tech text-sm animate-pulse">
+              <div className="rounded-xl border border-[#E2E8F0] bg-white p-8 sm:p-12 text-center text-[#94A3B8] font-mono-tech text-sm animate-pulse">
                 Querying live risk signals...
               </div>
             ) : anomalies.length === 0 ? (
-              <div className="rounded-xl border border-[#E2E8F0] bg-white p-12 text-center text-[#94A3B8] font-mono-tech text-sm">
+              <div className="rounded-xl border border-[#E2E8F0] bg-white p-8 sm:p-12 text-center text-[#94A3B8] font-mono-tech text-sm">
                 No items match the current filters.
               </div>
             ) : (
@@ -147,49 +147,49 @@ export default function AnomaliesPage() {
                   <div key={a.id} className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden shadow-sm hover:shadow transition">
                     <button
                       onClick={() => setSelectedWorkId(a.work_id)}
-                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#F8FAFC] transition text-left"
+                      className="w-full flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-5 py-3 sm:py-4 hover:bg-[#F8FAFC] transition text-left gap-2 sm:gap-4"
                     >
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
                         <span
-                          className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase font-mono-tech shrink-0"
+                          className="px-1.5 sm:px-2.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase font-mono-tech shrink-0"
                           style={{ background: style.bg, color: style.text, border: `1px solid ${style.border}` }}
                         >
                           {a.severity}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-[#0F172A]">{a.anomaly_type}</span>
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <span className="text-xs sm:text-sm font-semibold text-[#0F172A] truncate">{a.anomaly_type}</span>
                             {a.signal_code && a.signal_code !== 'COMPOSITE' && (
-                              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] font-mono-tech text-[#64748B]">
+                              <span className="px-1 sm:px-1.5 py-0.5 rounded bg-slate-100 text-[9px] sm:text-[10px] font-mono-tech text-[#64748B] shrink-0">
                                 {SIGNAL_BADGES[a.signal_code] || a.signal_code}
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-[#64748B] mt-0.5 max-w-[650px] truncate">
+                          <div className="text-[10px] sm:text-xs text-[#64748B] mt-0.5 max-w-[650px] truncate">
                             {a.description}
                           </div>
-                          <div className="flex gap-3 mt-1">
-                            {a.state && <span className="text-[10px] text-[#94A3B8] font-mono-tech">{a.state}</span>}
-                            {a.constituency && <span className="text-[10px] text-[#94A3B8] font-mono-tech">{a.constituency}</span>}
+                          <div className="flex gap-2 sm:gap-3 mt-1">
+                            {a.state && <span className="text-[9px] sm:text-[10px] text-[#94A3B8] font-mono-tech">{a.state}</span>}
+                            {a.constituency && <span className="text-[9px] sm:text-[10px] text-[#94A3B8] font-mono-tech">{a.constituency}</span>}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 shrink-0">
+                      <div className="flex items-center gap-3 sm:gap-4 shrink-0 sm:ml-2 pl-7 sm:pl-0">
                         <div className="text-right">
-                          <div className="text-[10px] font-mono-tech text-[#94A3B8]">Risk</div>
-                          <div className="text-sm font-bold font-mono-tech text-[#0F172A]">{formatScore(a.composite_risk)}</div>
+                          <div className="text-[9px] sm:text-[10px] font-mono-tech text-[#94A3B8]">Risk</div>
+                          <div className="text-xs sm:text-sm font-bold font-mono-tech text-[#0F172A]">{formatScore(a.composite_risk)}</div>
                         </div>
                         {a.signal_code !== 'COMPOSITE' && (
                           <div className="text-right">
-                            <div className="text-[10px] font-mono-tech text-[#94A3B8]">Score</div>
-                            <div className="text-sm font-bold font-mono-tech text-[#0F172A]">{formatScore(a.score)}</div>
+                            <div className="text-[9px] sm:text-[10px] font-mono-tech text-[#94A3B8]">Score</div>
+                            <div className="text-xs sm:text-sm font-bold font-mono-tech text-[#0F172A]">{formatScore(a.score)}</div>
                           </div>
                         )}
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono-tech font-semibold capitalize bg-[#F1F5F9] text-[#64748B]">
+                        <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-mono-tech font-semibold capitalize bg-[#F1F5F9] text-[#64748B]">
                           {(a.task_status || 'pending').replace('_', ' ')}
                         </span>
-                        <span className="text-[9px] font-mono-tech text-accent">View →</span>
+                        <span className="text-[9px] sm:text-[10px] font-mono-tech text-accent">View →</span>
                       </div>
                     </button>
                   </div>
@@ -200,7 +200,7 @@ export default function AnomaliesPage() {
         )}
 
         {!signalUnavailable && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6">
+          <div className="flex items-center justify-center gap-2 mt-4 sm:mt-6">
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1}

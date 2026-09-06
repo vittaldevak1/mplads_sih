@@ -137,7 +137,7 @@ export default function WorkForensicDrawer({ workId, onClose, sourcePage, vendor
               ))}
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-3 sm:p-5 space-y-3 sm:space-y-4">
               {/* OVERVIEW TAB */}
               {activeTab === 'overview' && work && (
                 <>

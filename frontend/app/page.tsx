@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { fetchDashboardSummary, fetchInspectionQueue, fetchAnomalies, triggerAIAudit, fetchAuditStatus } from '@/lib/api';
 import { DashboardSummary, InspectionQueueItem, Anomaly } from '@/types';
 import WorkForensicDrawer from '@/components/WorkForensicDrawer';
+import { useAuth, ROLE_LABELS } from '@/lib/auth';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid, Legend,
@@ -33,6 +34,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [criticalWorks, setCriticalWorks] = useState<InspectionQueueItem[]>([]);
   const [recentAnomalies, setRecentAnomalies] = useState<Anomaly[]>([]);
@@ -113,19 +115,19 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-6 space-y-5">
+    <div className="max-w-[1400px] mx-auto px-3 sm:px-5 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
       {/* Official Header */}
-      <div className="gov-panel p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#1E3A8A]">
+      <div className="gov-panel p-3 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.15em] font-semibold text-[#1E3A8A]">
               Government of India · Ministry of Statistics &amp; Programme Implementation
             </div>
-            <h1 className="text-lg font-serif-luxury font-bold text-[#0F172A] mt-1">
+            <h1 className="text-base sm:text-lg font-serif-luxury font-bold text-[#0F172A] mt-1">
               MPLADS Forensic Audit &amp; Monitoring Platform
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             {/* Status Indicators */}
             <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
               <div className="flex items-center gap-1.5">
@@ -146,7 +148,7 @@ export default function Dashboard() {
             <button
               onClick={handleRunAudit}
               disabled={auditRunning}
-              className={`px-4 py-2 rounded-lg text-xs font-bold font-mono-tech transition ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold font-mono-tech transition whitespace-nowrap ${
                 auditRunning
                   ? 'bg-[#F1F5F9] text-[#94A3B8] cursor-not-allowed'
                   : 'bg-accent text-white hover:bg-accent-light'
@@ -158,8 +160,21 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Role Scope Banner */}
+      {user && user.role !== 'ministry_admin' && (
+        <div className="gov-panel px-3 sm:px-4 py-2 sm:py-2.5 flex items-center gap-2">
+          <svg className="w-3.5 h-3.5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-[10px] font-mono-tech text-[#64748B]">
+            Viewing as <span className="font-bold text-accent">{ROLE_LABELS[user.role]}</span>
+            {user.state && <span> — {user.constituency ? `${user.constituency}, ${user.state}` : user.district ? `${user.district}, ${user.state}` : user.state}</span>}
+          </span>
+        </div>
+      )}
+
       {auditStatus && (
-        <div className="gov-panel px-4 py-3 text-xs font-mono-tech text-accent">
+        <div className="gov-panel px-3 sm:px-4 py-2 sm:py-3 text-xs font-mono-tech text-accent">
           {auditStatus}
           {auditRunning && auditProgress.total > 0 && (
             <div className="mt-2 w-full bg-[#E2E8F0] rounded-full h-1.5">
@@ -173,13 +188,13 @@ export default function Dashboard() {
       )}
 
       {/* KPI Grid */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
         {kpis.map((kpi, idx) => (
-          <div key={idx} className={`gov-panel rounded-lg p-4 border-l-4 ${kpi.border}`}>
-            <div className="text-[10px] font-mono-tech text-[#94A3B8] uppercase tracking-wider">
+          <div key={idx} className={`gov-panel rounded-lg p-3 sm:p-4 border-l-4 ${kpi.border}`}>
+            <div className="text-[9px] sm:text-[10px] font-mono-tech text-[#94A3B8] uppercase tracking-wider">
               {kpi.label}
             </div>
-            <div className="text-xl font-serif-luxury font-bold mt-1 text-[#0F172A]">
+            <div className="text-lg sm:text-xl font-serif-luxury font-bold mt-1 text-[#0F172A] truncate">
               {kpi.value}
             </div>
           </div>
@@ -187,9 +202,9 @@ export default function Dashboard() {
       </section>
 
       {/* Charts Row */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
         {/* Risk Distribution */}
-        <div className="gov-panel p-5">
+        <div className="gov-panel p-3 sm:p-5">
           <div className="text-[10px] font-mono-tech text-[#1E3A8A] uppercase tracking-wider mb-3 font-semibold">
             Risk Distribution
           </div>
@@ -206,7 +221,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stage Progression */}
-        <div className="gov-panel p-5">
+        <div className="gov-panel p-3 sm:p-5">
           <div className="text-[10px] font-mono-tech text-[#1E3A8A] uppercase tracking-wider mb-3 font-semibold">
             Works by Stage
           </div>
@@ -226,7 +241,7 @@ export default function Dashboard() {
         </div>
 
         {/* Budget */}
-        <div className="gov-panel p-5">
+        <div className="gov-panel p-3 sm:p-5">
           <div className="text-[10px] font-mono-tech text-[#1E3A8A] uppercase tracking-wider mb-3 font-semibold">
             Budget vs Expenditure
           </div>
@@ -247,9 +262,9 @@ export default function Dashboard() {
       </section>
 
       {/* Alerts + Anomalies */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         {/* Critical Alerts */}
-        <div className="gov-panel p-5">
+        <div className="gov-panel p-3 sm:p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] font-mono-tech text-risk-critical uppercase tracking-wider flex items-center gap-2 font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-risk-critical animate-pulse" />
@@ -263,7 +278,7 @@ export default function Dashboard() {
             ) : (
               criticalWorks.map((w) => (
                 <button key={w.work_id} onClick={() => setSelectedWorkId(w.work_id)}
-                  className="flex items-center justify-between p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] hover:border-risk-critical/30 transition w-full text-left"
+                  className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] hover:border-risk-critical/30 transition w-full text-left"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-[#334155] truncate">{w.work_description || w.work_id}</div>
@@ -282,7 +297,7 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Anomalies */}
-        <div className="gov-panel p-5">
+        <div className="gov-panel p-3 sm:p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] font-mono-tech text-accent uppercase tracking-wider font-semibold">
               Recent Anomalies
@@ -295,10 +310,10 @@ export default function Dashboard() {
             ) : (
               recentAnomalies.map((a) => (
                 <button key={a.id} onClick={() => setSelectedWorkId(a.work_id)}
-                  className="flex items-center justify-between p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] hover:border-accent/30 transition w-full text-left"
+                  className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] hover:border-accent/30 transition w-full text-left"
                 >
-                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                    <span className={`w-1.5 h-8 rounded-full shrink-0 ${
+                  <div className="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0">
+                    <span className={`w-1.5 h-6 sm:h-8 rounded-full shrink-0 ${
                       a.severity === 'HIGH' ? 'bg-[#DC2626]' :
                       a.severity === 'MEDIUM' ? 'bg-[#D97706]' : 'bg-[#2563EB]'
                     }`} />
@@ -318,13 +333,13 @@ export default function Dashboard() {
       </section>
 
       {/* 11-Signal Framework */}
-      <section className="gov-panel p-5">
-        <div className="flex items-center gap-2 mb-4">
+      <section className="gov-panel p-3 sm:p-5">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <div className="text-sm font-serif-luxury font-bold text-[#0F172A]">
             11-Signal Risk Framework
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
           {[
             { code: 'F', name: 'Financial Disbursement Alert', weight: '15%' },
             { code: 'D', name: 'Delay / Duration Monitoring', weight: '12%' },
@@ -338,7 +353,7 @@ export default function Dashboard() {
             { code: 'B', name: 'Statistical Threshold Alert', weight: '4%' },
             { code: 'Rs', name: 'Cost/Gestation Outlier', weight: '4%' },
           ].map((signal) => (
-            <div key={signal.code} className="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] hover:border-accent/30 transition">
+            <div key={signal.code} className="p-2 sm:p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] hover:border-accent/30 transition">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-mono-tech text-accent font-semibold">{signal.code}</span>
                 <span className="text-[10px] font-mono-tech px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20">

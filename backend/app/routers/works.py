@@ -9,6 +9,8 @@ from ..models.work_completion import WorkCompletion
 from ..models.expenditure import Expenditure
 from ..models.risk_score import RiskScore
 from ..schemas.ai_contract import PaginatedResponse, WorkListResponse
+from ..auth.dependencies import get_current_user, get_scope_filter
+from ..auth.models import DemoUser
 
 router = APIRouter(prefix="/api", tags=["works"])
 
@@ -21,6 +23,7 @@ SORT_COLUMNS = {
     "priority": RiskScore.inspection_priority,
 }
 
+
 @router.get("/works", response_model=PaginatedResponse)
 async def get_works(
     page: int = Query(1, ge=1),
@@ -32,10 +35,17 @@ async def get_works(
     search: Optional[str] = None,
     sort_by: Optional[str] = None,
     sort_dir: Optional[str] = Query("asc", pattern="^(asc|desc)$"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: DemoUser = Depends(get_current_user),
 ):
     query = db.query(Work)
 
+    # 1. JURISDICTION — apply scope filter FIRST
+    scope = get_scope_filter(user, Work)
+    if scope:
+        query = query.filter(*scope)
+
+    # 2. RISK JOIN (if needed for sorting or filtering)
     needs_risk_join = (
         (sort_by in ("risk", "priority") and risk_level is None) or
         risk_level is not None
@@ -43,6 +53,7 @@ async def get_works(
     if needs_risk_join:
         query = query.outerjoin(RiskScore, Work.work_id == RiskScore.work_id)
 
+    # 3. SEARCH / FILTER
     if state:
         query = query.filter(Work.state == state)
     if parliament:
@@ -57,10 +68,13 @@ async def get_works(
             Work.work_description.ilike(f"%{search}%"),
             Work.constituency.ilike(f"%{search}%"),
         ))
+
+    # 4. SORT
     if sort_by and sort_by in SORT_COLUMNS:
         col = SORT_COLUMNS[sort_by]
         query = query.order_by(desc(col) if sort_dir == "desc" else asc(col))
 
+    # 5. PAGINATE
     total = query.count()
     works = query.offset((page - 1) * size).limit(size).all()
 
